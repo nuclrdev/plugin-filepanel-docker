@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "version": "${project.version}",
+  "platformSdkVersion": "${platform.sdk.version}",
+	"plugins": [
+		{
+			"class": "dev.nuclr.plugin.core.panel.docker.DockerFilePanelPlugin",
+			"type": "FilePanel",
+			"id": "dev.nuclr.plugin.core.panel.docker",
+			"name": "Docker",
+			"version": "${project.version}",
+			"description": "Browse and manage the local Docker Engine through Nuclr Commander's FilePanel.",
+			"author": "Nuclr Development Team",
+			"license": "Apache-2.0",
+			"website": "https://nuclr.dev",
+			"pageUrl": "https://github.com/nuclrdev/plugin-filepanel-docker",
+			"docUrl": "https://github.com/nuclrdev/plugin-filepanel-docker",
+			"developer": "Official",
+			"singleton": false
+		}
+	]
+}

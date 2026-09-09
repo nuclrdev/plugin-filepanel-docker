@@ -13,6 +13,38 @@ Containers and images are navigable, read-only filesystems. Files use the standa
 and F5 copies them into a local filesystem panel. Docker resource management is exposed through
 the normal panel function-key and context-menu action infrastructure.
 
+## Container lifecycle
+
+Start, Stop, Restart, Pause and Resume act on the panel selection, not only on the row under the
+cursor: select several containers and one press applies the operation to all of them, exactly as
+Delete already behaves. Each operation is offered when at least one selected container is in a
+state that allows it, and is then applied only to the containers it is valid for — pressing Start
+on a half-running selection starts the stopped ones instead of raising an error for the rest. A
+container Docker refuses does not abandon the rest of the selection; the failures are collected
+and reported together once the progress dialog closes. Applying an operation to more than one
+container asks for confirmation first.
+
+### Function keys
+
+| Key | Command |
+|-----|---------|
+| F3 | Inspect |
+| Shift+F3 | Logs |
+| Shift+F5 | Start |
+| Shift+F6 | Stop |
+| Shift+F7 | Restart |
+| Shift+F8 | Pause |
+| Shift+F2 | Resume |
+| F8 | Delete |
+
+The lifecycle commands sit on the Shift row because it is the only modifier row no desktop claims:
+macOS reserves Ctrl+F2–F8 system-wide and Linux window managers take Alt+F7/F8/F10, which is why
+Commander carries a stand-in chord for each of those rows and none for this one. Two Shift slots
+are still unavailable, so Resume does not continue the run past Pause: F9 is Commander's menu-bar
+key under every modifier and is never handed to a plugin, and Shift+F10 is the keyboard
+context-menu key on Windows, GTK and Qt alike. On macOS the function row needs *Use F1, F2, etc.
+keys as standard function keys* enabled, or fn held, as it does for every Commander plugin.
+
 ## Integration design
 
 - `DockerService` is the single Docker boundary. The first version uses Docker CLI commands with

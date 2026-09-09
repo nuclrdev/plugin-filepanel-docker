@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import dev.nuclr.platform.plugin.BaseNuclrPlugin;
 import dev.nuclr.platform.plugin.FilePanelNuclrPlugin;
@@ -333,6 +334,12 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			return items;
 		}
 		if (DockerResource.KIND_CONTAINER.equals(resourceKind)) {
+			// The lifecycle commands live on the Shift row because it is the only modifier row no
+			// desktop claims: macOS reserves Ctrl+F2..F8 and Linux window managers take Alt+F7/F8/F10,
+			// which is why the commander carries an alias for each of those rows and none for this one.
+			// Shift+F9 is not available either — F9 is the commander's menu-bar key under every
+			// modifier — and Shift+F10 is the keyboard context-menu key on Windows, GTK and Qt alike,
+			// so Resume sits on Shift+F2 rather than continuing the run past Pause.
 			items.add(menu("Inspect", "F3", INSPECT));
 			items.add(menu("Logs", "Shift+F3", LOGS));
 			ContainerActions actions = ContainerActions.forState(DockerResource.containerState(resource));
@@ -340,7 +347,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			if (actions.stop()) items.add(menu("Stop", "Shift+F6", STOP));
 			if (actions.restart()) items.add(menu("Restart", "Shift+F7", RESTART));
 			if (actions.pause()) items.add(menu("Pause", "Shift+F8", PAUSE));
-			if (actions.resume()) items.add(menu("Resume", "Shift+F9", RESUME));
+			if (actions.resume()) items.add(menu("Resume", "Shift+F2", RESUME));
 			if (actions.delete()) items.add(menu("Delete", "F8", DELETE));
 			return items;
 		}
@@ -366,7 +373,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			List<NuclrResource> selectedResources) {
 		String kind = DockerResource.kind(focusedResource);
 		if (DockerResource.KIND_CONTAINER.equals(kind)) {
-			ContainerActions actions = ContainerActions.forState(DockerResource.containerState(focusedResource));
+			ContainerActions actions = selectionActions(focusedResource, selectedResources);
 			var items = new ArrayList<NuclrContextMenuItem>();
 			items.add(action("Inspect", INSPECT, "info", true, false));
 			items.add(action("View Logs", LOGS, "view", true, false));
@@ -406,6 +413,24 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 	}
 
 	/**
+	 * What the context menu offers for the current selection.
+	 *
+	 * <p>Gating on the focused row alone would hide Start from a mixed selection whenever the row
+	 * under the cursor happened to be running, leaving no way to start the stopped ones from the
+	 * menu at all.
+	 */
+	private static ContainerActions selectionActions(NuclrResource focusedResource,
+			List<NuclrResource> selectedResources) {
+
+		List<NuclrResource> targets = containerTargets(selectedResources, focusedResource);
+		if (targets.isEmpty()) {
+			return ContainerActions.forState(DockerResource.containerState(focusedResource));
+		}
+		return ContainerActions.forStates(
+				targets.stream().map(DockerResource::containerState).toList());
+	}
+
+	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>Commander dispatches every one of these on the event dispatch thread — a context-menu
@@ -423,11 +448,16 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			case COPY -> copyOut(other, selectedResources, focusedResource);
 			case ACCEPT_COPY -> DockerDialogs.error("Copy",
 					"Docker filesystems are read-only. Copying into a container is not supported.");
-			case START -> containerOperation("Start", focusedResource, service::startContainer, data);
-			case STOP -> containerOperation("Stop", focusedResource, service::stopContainer, data);
-			case RESTART -> containerOperation("Restart", focusedResource, service::restartContainer, data);
-			case PAUSE -> containerOperation("Pause", focusedResource, service::pauseContainer, data);
-			case RESUME -> containerOperation("Resume", focusedResource, service::resumeContainer, data);
+			case START -> containerOperation("Start", ContainerActions::start, service::startContainer,
+					selectedResources, focusedResource, data);
+			case STOP -> containerOperation("Stop", ContainerActions::stop, service::stopContainer,
+					selectedResources, focusedResource, data);
+			case RESTART -> containerOperation("Restart", ContainerActions::restart,
+					service::restartContainer, selectedResources, focusedResource, data);
+			case PAUSE -> containerOperation("Pause", ContainerActions::pause, service::pauseContainer,
+					selectedResources, focusedResource, data);
+			case RESUME -> containerOperation("Resume", ContainerActions::resume,
+					service::resumeContainer, selectedResources, focusedResource, data);
 			case INSPECT -> inspect(focusedResource);
 			case LOGS -> logs(focusedResource);
 			case RUN_IMAGE -> runImage(focusedResource, data);
@@ -471,25 +501,128 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 		return false;
 	}
 
+	/** One container lifecycle call; package-private so tests can drive {@link #applyToAll}. */
 	@FunctionalInterface
-	private interface ContainerOperation {
+	interface ContainerOperation {
 		void apply(String id, BooleanSupplier cancelled) throws DockerException;
 	}
 
-	private void containerOperation(String title, NuclrResource resource, ContainerOperation operation,
-			Map<String, Object> data) {
+	/**
+	 * Apply one lifecycle operation to every selected container it is valid for.
+	 *
+	 * <p>The selection is honoured the way Delete already honours it: a multi-row selection wins
+	 * over the focused row. Containers the operation cannot apply to in their current state are
+	 * dropped rather than handed to Docker — pressing Start on a selection where four containers
+	 * are already running should not produce four error dialogs.
+	 *
+	 * @param applicable the states the operation is valid for, as {@link ContainerActions} reports them
+	 */
+	private void containerOperation(String title, Predicate<ContainerActions> applicable,
+			ContainerOperation operation, List<NuclrResource> selectedResources,
+			NuclrResource focusedResource, Map<String, Object> data) {
 
-		String id = DockerResource.resourceId(resource);
-		if (id == null) {
+		List<NuclrResource> containers = containerTargets(selectedResources, focusedResource);
+		if (containers.isEmpty()) {
 			return;
 		}
-		if (background(title, cancelled -> operation.apply(id, cancelled))) {
-			log.info("Docker container {} completed for {}", title.toLowerCase(Locale.ROOT),
-					DockerNames.shortId(id));
+		List<NuclrResource> targets = applicableTargets(applicable, containers);
+		if (targets.isEmpty()) {
+			String verb = title.toLowerCase(Locale.ROOT);
+			DockerDialogs.info(title, containers.size() == 1
+					? "Cannot " + verb + ' ' + containers.getFirst().getName() + " in its current state."
+					: "Cannot " + verb + " any of the selected containers in their current state.");
+			return;
 		}
-		// The container's filesystem has moved on whether or not the command reported success.
-		filesystems.invalidate(DockerFilesystemManager.SOURCE_CONTAINER, id);
+		if (targets.size() > 1 && !confirmBulk(title, targets)) {
+			return;
+		}
+
+		var failures = new ArrayList<String>();
+		DockerProgress.run(title, progress -> failures.addAll(applyToAll(title, operation, targets,
+				DockerProgress.cancellation(progress), progress::onStart)));
+
 		requestRefresh(data);
+		if (!failures.isEmpty()) {
+			DockerDialogs.error(title,
+					String.join(System.lineSeparator() + System.lineSeparator(), failures));
+		}
+	}
+
+	private static boolean confirmBulk(String title, List<NuclrResource> targets) {
+		StringBuilder message = new StringBuilder(title).append(" the following ")
+				.append(targets.size()).append(" containers?").append(System.lineSeparator());
+		for (NuclrResource target : targets) {
+			message.append(System.lineSeparator()).append(target.getName());
+		}
+		return DockerDialogs.confirm(title + " Containers", message.toString());
+	}
+
+	/**
+	 * Run one lifecycle operation over every target, carrying on past the ones Docker refuses.
+	 *
+	 * <p>Like {@link #deleteAll}, one container that will not start must not silently abandon the
+	 * rest of the selection, and the failures are collected so the user sees them together once
+	 * instead of one dialog per container.
+	 *
+	 * @param announce receives a line of progress per target; may be {@code null}
+	 * @return one message per container the operation failed for, in the order they were tried
+	 */
+	List<String> applyToAll(String title, ContainerOperation operation, List<NuclrResource> targets,
+			BooleanSupplier cancelled, Consumer<String> announce) {
+
+		var failures = new ArrayList<String>();
+		for (NuclrResource target : targets) {
+			if (cancelled != null && cancelled.getAsBoolean()) {
+				break;
+			}
+			String id = DockerResource.resourceId(target);
+			if (id == null) {
+				continue;
+			}
+			if (announce != null) {
+				announce.accept(title + ' ' + target.getName());
+			}
+			boolean interrupted = false;
+			try {
+				operation.apply(id, cancelled);
+				log.info("Docker container {} completed for {}", title.toLowerCase(Locale.ROOT),
+						DockerNames.shortId(id));
+			} catch (DockerException e) {
+				if (e.kind() == DockerException.Kind.CANCELLED) {
+					interrupted = true;
+				} else {
+					log.warn("Docker {} failed for {}: {}", title, target.getName(), e.getMessage(), e);
+					failures.add(target.getName() + " — " + e.userMessage());
+				}
+			}
+			// The container's filesystem has moved on whether or not the command reported success.
+			filesystems.invalidate(DockerFilesystemManager.SOURCE_CONTAINER, id);
+			if (interrupted) {
+				break;
+			}
+		}
+		return List.copyOf(failures);
+	}
+
+	/** The containers an action applies to: the selection when there is one, else the focused row. */
+	static List<NuclrResource> containerTargets(List<NuclrResource> selectedResources,
+			NuclrResource focusedResource) {
+
+		List<NuclrResource> candidates = selectedResources != null && !selectedResources.isEmpty()
+				? selectedResources : focusedResource == null ? List.of() : List.of(focusedResource);
+		return candidates.stream()
+				.filter(resource -> DockerResource.KIND_CONTAINER.equals(DockerResource.kind(resource)))
+				.toList();
+	}
+
+	/** Those of {@code containers} whose current state allows the operation. */
+	static List<NuclrResource> applicableTargets(Predicate<ContainerActions> applicable,
+			List<NuclrResource> containers) {
+
+		return containers.stream()
+				.filter(target -> applicable.test(
+						ContainerActions.forState(DockerResource.containerState(target))))
+				.toList();
 	}
 
 	private void copyOut(BaseNuclrPlugin other, List<NuclrResource> selectedResources,

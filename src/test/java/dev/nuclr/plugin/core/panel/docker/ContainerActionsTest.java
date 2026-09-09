@@ -19,6 +19,8 @@ package dev.nuclr.plugin.core.panel.docker;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 class ContainerActionsTest {
@@ -40,6 +42,28 @@ class ContainerActionsTest {
 		assertTrue(actions.resume());
 		assertTrue(actions.stop());
 		assertFalse(actions.pause());
+		assertFalse(actions.delete());
+	}
+
+	@Test
+	void mixedSelectionOffersEveryActionAtLeastOneContainerAllows() {
+		// Otherwise a selection of running and stopped containers would offer neither Start nor
+		// Stop, and there would be no way to act on it at all.
+		ContainerActions actions = ContainerActions.forStates(List.of("running", "exited"));
+		assertTrue(actions.start());
+		assertTrue(actions.stop());
+		assertTrue(actions.delete());
+		assertFalse(actions.resume());
+	}
+
+	@Test
+	void emptySelectionOffersNothing() {
+		ContainerActions actions = ContainerActions.forStates(List.of());
+		assertFalse(actions.start());
+		assertFalse(actions.stop());
+		assertFalse(actions.restart());
+		assertFalse(actions.pause());
+		assertFalse(actions.resume());
 		assertFalse(actions.delete());
 	}
 

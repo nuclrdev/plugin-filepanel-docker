@@ -17,6 +17,7 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import java.util.List;
 import java.util.Locale;
 
 /** State-only action applicability; deliberately performs no Docker calls. */
@@ -27,6 +28,32 @@ public record ContainerActions(
 		boolean pause,
 		boolean resume,
 		boolean delete) {
+
+	/**
+	 * What a whole selection offers: an action at least one of the containers allows.
+	 *
+	 * <p>A selection is rarely of one mind — four containers running and two exited is the normal
+	 * case — so gating on every member would leave a mixed selection with nothing to offer. The
+	 * caller applies each operation only to the containers it is actually valid for.
+	 */
+	public static ContainerActions forStates(List<String> rawStates) {
+		boolean start = false;
+		boolean stop = false;
+		boolean restart = false;
+		boolean pause = false;
+		boolean resume = false;
+		boolean delete = false;
+		for (String rawState : rawStates) {
+			ContainerActions actions = forState(rawState);
+			start |= actions.start();
+			stop |= actions.stop();
+			restart |= actions.restart();
+			pause |= actions.pause();
+			resume |= actions.resume();
+			delete |= actions.delete();
+		}
+		return new ContainerActions(start, stop, restart, pause, resume, delete);
+	}
 
 	public static ContainerActions forState(String rawState) {
 		String state = rawState == null ? "" : rawState.toLowerCase(Locale.ROOT);

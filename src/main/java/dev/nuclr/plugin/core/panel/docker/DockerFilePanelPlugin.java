@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -96,6 +98,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 
 	@Override
 	public void preinit(NuclrPluginContext context) {
+		if (context != null) Messages.use(context.getLocale());
 		this.context = context;
 		this.currentResource = DockerResource.root();
 		log.info("Docker file panel plugin loaded");
@@ -167,7 +170,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 		item.setUuid(DockerResource.ROOT_UUID);
 		item.setPath(DockerResource.root());
 		var holder = new MenuItemsHolder();
-		holder.setTitle("Local Docker Engine");
+		holder.setTitle(tr("engine.local"));
 		holder.setMenuItems(List.of(item));
 		return holder;
 	}
@@ -328,8 +331,8 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 		String currentKind = DockerResource.kind(currentResource);
 		String resourceKind = DockerResource.kind(resource);
 		if (DockerResource.KIND_FILESYSTEM_DIRECTORY.equals(currentKind)) {
-			items.add(menu("View", "F3", VIEW));
-			items.add(menu("Copy", "F5", COPY));
+			items.add(menu(tr("key.view"), "F3", VIEW));
+			items.add(menu(tr("key.copy"), "F5", COPY));
 			addFileSort(items);
 			return items;
 		}
@@ -340,31 +343,31 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			// Shift+F9 is not available either — F9 is the commander's menu-bar key under every
 			// modifier — and Shift+F10 is the keyboard context-menu key on Windows, GTK and Qt alike,
 			// so Resume sits on Shift+F2 rather than continuing the run past Pause.
-			items.add(menu("Inspect", "F3", INSPECT));
-			items.add(menu("Logs", "Shift+F3", LOGS));
+			items.add(menu(tr("key.inspect"), "F3", INSPECT));
+			items.add(menu(tr("key.logs"), "Shift+F3", LOGS));
 			ContainerActions actions = ContainerActions.forState(DockerResource.containerState(resource));
-			if (actions.start()) items.add(menu("Start", "Shift+F5", START));
-			if (actions.stop()) items.add(menu("Stop", "Shift+F6", STOP));
-			if (actions.restart()) items.add(menu("Restart", "Shift+F7", RESTART));
-			if (actions.pause()) items.add(menu("Pause", "Shift+F8", PAUSE));
-			if (actions.resume()) items.add(menu("Resume", "Shift+F2", RESUME));
-			if (actions.delete()) items.add(menu("Delete", "F8", DELETE));
+			if (actions.start()) items.add(menu(tr("key.start"), "Shift+F5", START));
+			if (actions.stop()) items.add(menu(tr("key.stop"), "Shift+F6", STOP));
+			if (actions.restart()) items.add(menu(tr("key.restart"), "Shift+F7", RESTART));
+			if (actions.pause()) items.add(menu(tr("key.pause"), "Shift+F8", PAUSE));
+			if (actions.resume()) items.add(menu(tr("key.resume"), "Shift+F2", RESUME));
+			if (actions.delete()) items.add(menu(tr("key.delete"), "F8", DELETE));
 			return items;
 		}
 		if (DockerResource.KIND_IMAGE.equals(resourceKind)) {
-			return List.of(menu("Inspect", "F3", INSPECT), menu("Run", "Shift+F4", RUN_IMAGE),
-					menu("Delete", "F8", DELETE));
+			return List.of(menu(tr("key.inspect"), "F3", INSPECT), menu(tr("key.run"), "Shift+F4", RUN_IMAGE),
+					menu(tr("key.delete"), "F8", DELETE));
 		}
 		if (DockerResource.KIND_VOLUME.equals(resourceKind)) {
-			return List.of(menu("Inspect", "F3", INSPECT), menu("Create", "F7", CREATE_VOLUME),
-					menu("Delete", "F8", DELETE));
+			return List.of(menu(tr("key.inspect"), "F3", INSPECT), menu(tr("key.create"), "F7", CREATE_VOLUME),
+					menu(tr("key.delete"), "F8", DELETE));
 		}
 		if (DockerResource.KIND_CATEGORY.equals(currentKind)
 				&& DockerResource.CATEGORY_VOLUMES.equals(DockerResource.category(currentResource))) {
-			items.add(menu("Create", "F7", CREATE_VOLUME));
+			items.add(menu(tr("key.create"), "F7", CREATE_VOLUME));
 		}
-		items.add(menu("Name", "Ctrl+F3", "filepanel.sort:name:Name"));
-		items.add(menu("Sort", "Ctrl+F12", "filepanel.sort:dialog"));
+		items.add(menu(tr("key.sort.name"), "Ctrl+F3", "filepanel.sort:name:Name"));
+		items.add(menu(tr("key.sort"), "Ctrl+F12", "filepanel.sort:dialog"));
 		return items;
 	}
 
@@ -375,39 +378,39 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 		if (DockerResource.KIND_CONTAINER.equals(kind)) {
 			ContainerActions actions = selectionActions(focusedResource, selectedResources);
 			var items = new ArrayList<NuclrContextMenuItem>();
-			items.add(action("Inspect", INSPECT, "info", true, false));
-			items.add(action("View Logs", LOGS, "view", true, false));
+			items.add(action(tr("context.inspect"), INSPECT, "info", true, false));
+			items.add(action(tr("context.logs"), LOGS, "view", true, false));
 			items.add(NuclrContextMenuItem.separator());
-			items.add(action("Start", START, "play", actions.start(), false));
-			items.add(action("Stop", STOP, "stop", actions.stop(), false));
-			items.add(action("Restart", RESTART, "refresh", actions.restart(), false));
-			items.add(action("Pause", PAUSE, "pause", actions.pause(), false));
-			items.add(action("Resume", RESUME, "play", actions.resume(), false));
+			items.add(action(tr("op.start"), START, "play", actions.start(), false));
+			items.add(action(tr("op.stop"), STOP, "stop", actions.stop(), false));
+			items.add(action(tr("op.restart"), RESTART, "refresh", actions.restart(), false));
+			items.add(action(tr("op.pause"), PAUSE, "pause", actions.pause(), false));
+			items.add(action(tr("op.resume"), RESUME, "play", actions.resume(), false));
 			items.add(NuclrContextMenuItem.separator());
-			items.add(action("Delete", DELETE, "delete", actions.delete(), true));
+			items.add(action(tr("context.delete"), DELETE, "delete", actions.delete(), true));
 			return items;
 		}
 		if (DockerResource.KIND_IMAGE.equals(kind)) {
-			return List.of(action("Run / Create Container", RUN_IMAGE, "play", true, false),
-					action("Inspect", INSPECT, "info", true, false),
-					action("View Container Usage", USAGE, "view", true, false),
-					NuclrContextMenuItem.separator(), action("Delete", DELETE, "delete", true, true));
+			return List.of(action(tr("context.run"), RUN_IMAGE, "play", true, false),
+					action(tr("context.inspect"), INSPECT, "info", true, false),
+					action(tr("context.usage"), USAGE, "view", true, false),
+					NuclrContextMenuItem.separator(), action(tr("context.delete"), DELETE, "delete", true, true));
 		}
 		if (DockerResource.KIND_VOLUME.equals(kind)) {
-			return List.of(action("Inspect", INSPECT, "info", true, false),
-					action("View Container Usage", USAGE, "view", true, false),
-					NuclrContextMenuItem.separator(), action("Delete", DELETE, "delete", true, true));
+			return List.of(action(tr("context.inspect"), INSPECT, "info", true, false),
+					action(tr("context.usage"), USAGE, "view", true, false),
+					NuclrContextMenuItem.separator(), action(tr("context.delete"), DELETE, "delete", true, true));
 		}
 		if (DockerResource.KIND_FILESYSTEM_FILE.equals(kind)) {
-			return List.of(action("View", VIEW, "view", true, false),
-					action("Copy", COPY, "copy", true, false));
+			return List.of(action(tr("context.view"), VIEW, "view", true, false),
+					action(tr("context.copy"), COPY, "copy", true, false));
 		}
 		if (DockerResource.KIND_FILESYSTEM_DIRECTORY.equals(kind) && !"..".equals(focusedResource.getName())) {
-			return List.of(action("Copy", COPY, "copy", true, false));
+			return List.of(action(tr("context.copy"), COPY, "copy", true, false));
 		}
 		if (DockerResource.KIND_CATEGORY.equals(DockerResource.kind(currentResource))
 				&& DockerResource.CATEGORY_VOLUMES.equals(DockerResource.category(currentResource))) {
-			return List.of(action("Create Volume", CREATE_VOLUME, "folder-add", true, false));
+			return List.of(action(tr("volume.create.title"), CREATE_VOLUME, "folder-add", true, false));
 		}
 		return List.of();
 	}
@@ -446,17 +449,16 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 		switch (actionType) {
 			case PATH_OPENED, VIEW -> viewIfFile(focusedResource);
 			case COPY -> copyOut(other, selectedResources, focusedResource);
-			case ACCEPT_COPY -> DockerDialogs.error("Copy",
-					"Docker filesystems are read-only. Copying into a container is not supported.");
-			case START -> containerOperation("Start", ContainerActions::start, service::startContainer,
+			case ACCEPT_COPY -> DockerDialogs.error(tr("copy.title"), tr("copy.read.only"));
+			case START -> containerOperation(tr("op.start"), ContainerActions::start, service::startContainer,
 					selectedResources, focusedResource, data);
-			case STOP -> containerOperation("Stop", ContainerActions::stop, service::stopContainer,
+			case STOP -> containerOperation(tr("op.stop"), ContainerActions::stop, service::stopContainer,
 					selectedResources, focusedResource, data);
-			case RESTART -> containerOperation("Restart", ContainerActions::restart,
+			case RESTART -> containerOperation(tr("op.restart"), ContainerActions::restart,
 					service::restartContainer, selectedResources, focusedResource, data);
-			case PAUSE -> containerOperation("Pause", ContainerActions::pause, service::pauseContainer,
+			case PAUSE -> containerOperation(tr("op.pause"), ContainerActions::pause, service::pauseContainer,
 					selectedResources, focusedResource, data);
-			case RESUME -> containerOperation("Resume", ContainerActions::resume,
+			case RESUME -> containerOperation(tr("op.resume"), ContainerActions::resume,
 					service::resumeContainer, selectedResources, focusedResource, data);
 			case INSPECT -> inspect(focusedResource);
 			case LOGS -> logs(focusedResource);
@@ -529,8 +531,8 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 		if (targets.isEmpty()) {
 			String verb = title.toLowerCase(Locale.ROOT);
 			DockerDialogs.info(title, containers.size() == 1
-					? "Cannot " + verb + ' ' + containers.getFirst().getName() + " in its current state."
-					: "Cannot " + verb + " any of the selected containers in their current state.");
+					? tr("container.cannot.one", verb, containers.getFirst().getName())
+					: tr("container.cannot.any", verb));
 			return;
 		}
 		if (targets.size() > 1 && !confirmBulk(title, targets)) {
@@ -549,12 +551,12 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 	}
 
 	private static boolean confirmBulk(String title, List<NuclrResource> targets) {
-		StringBuilder message = new StringBuilder(title).append(" the following ")
-				.append(targets.size()).append(" containers?").append(System.lineSeparator());
+		StringBuilder message = new StringBuilder(tr("container.bulk.confirm", title, String.valueOf(targets.size())))
+				.append(System.lineSeparator());
 		for (NuclrResource target : targets) {
 			message.append(System.lineSeparator()).append(target.getName());
 		}
-		return DockerDialogs.confirm(title + " Containers", message.toString());
+		return DockerDialogs.confirm(tr("container.bulk.title", title), message.toString());
 	}
 
 	/**
@@ -592,7 +594,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 					interrupted = true;
 				} else {
 					log.warn("Docker {} failed for {}: {}", title, target.getName(), e.getMessage(), e);
-					failures.add(target.getName() + " — " + e.userMessage());
+					failures.add(target.getName() + " - " + e.userMessage());
 				}
 			}
 			// The container's filesystem has moved on whether or not the command reported success.
@@ -634,9 +636,9 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			return;
 		}
 		var failure = new AtomicReference<String>();
-		DockerProgress.run("Copy", progress -> failure.set(copyService.transfer(plan, progress)));
+		DockerProgress.run(tr("copy.title"), progress -> failure.set(copyService.transfer(plan, progress)));
 		if (failure.get() != null) {
-			DockerDialogs.error("Copy", failure.get());
+			DockerDialogs.error(tr("copy.title"), failure.get());
 		}
 	}
 
@@ -647,14 +649,14 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			return;
 		}
 		var json = new AtomicReference<String>();
-		boolean completed = background("Inspect", cancelled -> json.set(switch (kind) {
+		boolean completed = background(tr("op.inspect"), cancelled -> json.set(switch (kind) {
 			case DockerResource.KIND_CONTAINER -> service.inspectContainer(id, cancelled);
 			case DockerResource.KIND_IMAGE -> service.inspectImage(id, cancelled);
 			case DockerResource.KIND_VOLUME -> service.inspectVolume(id, cancelled);
 			default -> null;
 		}));
 		if (completed && json.get() != null) {
-			viewText("Inspect " + resource.getName(), safeFileName(resource.getName()) + ".json", json.get());
+			viewText(tr("inspect.title", resource.getName()), safeFileName(resource.getName()) + ".json", json.get());
 		}
 	}
 
@@ -664,12 +666,12 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 		}
 		String id = DockerResource.resourceId(resource);
 		var logs = new AtomicReference<String>();
-		if (!background("Logs", cancelled -> logs.set(service.containerLogs(id, cancelled)))) {
+		if (!background(tr("op.logs"), cancelled -> logs.set(service.containerLogs(id, cancelled)))) {
 			return;
 		}
-		viewText("Logs — " + resource.getName(), safeFileName(resource.getName()) + ".log",
+		viewText(tr("logs.title", resource.getName()), safeFileName(resource.getName()) + ".log",
 				logs.get() == null || logs.get().isEmpty()
-						? "No logs are available for this container." : logs.get());
+						? tr("logs.none") : logs.get());
 	}
 
 	private void runImage(NuclrResource resource, Map<String, Object> data) {
@@ -682,13 +684,13 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			return;
 		}
 		var containerId = new AtomicReference<String>();
-		if (!background("Run Image", cancelled -> containerId.set(service.runContainer(request, cancelled)))) {
+		if (!background(tr("run.title"), cancelled -> containerId.set(service.runContainer(request, cancelled)))) {
 			// A create that succeeded before a failed start still leaves a container to show.
 			requestRefresh(data);
 			return;
 		}
 		requestRefresh(data);
-		DockerDialogs.info("Run Image", "Container started: " + DockerNames.shortId(containerId.get()));
+		DockerDialogs.info(tr("run.title"), tr("run.started", DockerNames.shortId(containerId.get())));
 	}
 
 	private void openUsage(NuclrResource resource) {
@@ -702,16 +704,16 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 	}
 
 	private void createVolume(Map<String, Object> data) {
-		String prompted = DockerDialogs.prompt("Create Volume", "Volume name:");
+		String prompted = DockerDialogs.prompt(tr("volume.create.title"), tr("volume.create.message"));
 		if (prompted == null) {
 			return;
 		}
 		String name = prompted.strip();
 		if (name.isBlank()) {
-			DockerDialogs.error("Create Volume", "Enter a volume name.");
+			DockerDialogs.error(tr("volume.create.title"), tr("volume.create.empty"));
 			return;
 		}
-		if (background("Create Volume", cancelled -> service.createVolume(name, cancelled))) {
+		if (background(tr("volume.create.title"), cancelled -> service.createVolume(name, cancelled))) {
 			requestRefresh(data);
 		}
 	}
@@ -730,24 +732,23 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			return;
 		}
 
-		StringBuilder message = new StringBuilder("Delete the following Docker resource");
-		message.append(targets.size() == 1 ? "?" : "s?");
+		StringBuilder message = new StringBuilder(targets.size() == 1 ? tr("delete.confirm.one") : tr("delete.confirm.many"));
 		for (NuclrResource target : targets) {
 			message.append(System.lineSeparator()).append(target.getName());
 		}
 		message.append(System.lineSeparator()).append(System.lineSeparator())
-				.append("Running containers are never force-deleted.");
-		if (!DockerDialogs.confirmDestructive("Delete Docker Resource", message.toString())) {
+				.append(tr("delete.running.note"));
+		if (!DockerDialogs.confirmDestructive(tr("delete.title"), message.toString())) {
 			return;
 		}
 
 		var failures = new ArrayList<String>();
-		DockerProgress.run("Delete", progress -> failures.addAll(
+		DockerProgress.run(tr("op.delete"), progress -> failures.addAll(
 				deleteAll(targets, DockerProgress.cancellation(progress), progress::onStart)));
 
 		requestRefresh(data);
 		if (!failures.isEmpty()) {
-			DockerDialogs.error("Delete Docker Resource",
+			DockerDialogs.error(tr("delete.title"),
 					String.join(System.lineSeparator() + System.lineSeparator(), failures));
 		}
 	}
@@ -769,7 +770,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 				break;
 			}
 			if (announce != null) {
-				announce.accept("Deleting " + target.getName());
+				announce.accept(tr("delete.progress", target.getName()));
 			}
 			try {
 				removeOne(target, cancelled);
@@ -778,7 +779,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 					break;
 				}
 				log.warn("Could not delete {}: {}", target.getName(), e.getMessage(), e);
-				failures.add(target.getName() + " — " + e.userMessage());
+				failures.add(target.getName() + " - " + e.userMessage());
 			}
 		}
 		return List.copyOf(failures);
@@ -853,7 +854,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 	public void walkDescendants(NuclrResource resource, Consumer<NuclrResource> visitor,
 			AtomicBoolean cancelled, boolean recursive) throws IOException {
 		if (resource == null || !resource.isFolder() || DockerResource.sourceType(resource) == null) {
-			throw new IOException("Not a Docker filesystem directory.");
+			throw new IOException(tr("error.not.filesystem.directory"));
 		}
 		try {
 			walk(resource, visitor, cancelled, recursive, 0, new HashSet<>());
@@ -872,7 +873,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 			boolean recursive, int depth, Set<String> visited) throws DockerException, IOException {
 
 		if (depth > MAX_WALK_DEPTH) {
-			throw new IOException("Too many linked directory levels below " + directory.getFullPath());
+			throw new IOException(tr("error.link.depth", directory.getFullPath()));
 		}
 		String type = DockerResource.sourceType(directory);
 		String id = DockerResource.resourceIdForFilesystem(directory);
@@ -929,7 +930,7 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 					: only.getName() + "   " + DockerResource.formatSize(only.getLength());
 		}
 		long bytes = selectedResources.stream().mapToLong(resource -> Math.max(0, resource.getLength())).sum();
-		return selectedResources.size() + " items selected, " + DockerResource.formatSize(bytes);
+		return tr("summary.items", String.valueOf(selectedResources.size()), DockerResource.formatSize(bytes));
 	}
 
 	private static NuclrResourceData data(List<String> columns, EntrySink sink) {
@@ -955,11 +956,11 @@ public final class DockerFilePanelPlugin implements FilePanelNuclrPlugin {
 	}
 
 	private static void addFileSort(List<NuclrMenuResource> items) {
-		items.add(menu("Name", "Ctrl+F3", "filepanel.sort:name:Name"));
-		items.add(menu("Extension", "Ctrl+F4", "filepanel.sort:ext:Extension"));
-		items.add(menu("Modified", "Ctrl+F5", "filepanel.sort:modified:Modified"));
-		items.add(menu("Size", "Ctrl+F6", "filepanel.sort:size:Size"));
-		items.add(menu("Sort", "Ctrl+F12", "filepanel.sort:dialog"));
+		items.add(menu(tr("key.sort.name"), "Ctrl+F3", "filepanel.sort:name:Name"));
+		items.add(menu(tr("key.sort.extension"), "Ctrl+F4", "filepanel.sort:ext:Extension"));
+		items.add(menu(tr("key.sort.modified"), "Ctrl+F5", "filepanel.sort:modified:Modified"));
+		items.add(menu(tr("key.sort.size"), "Ctrl+F6", "filepanel.sort:size:Size"));
+		items.add(menu(tr("key.sort"), "Ctrl+F12", "filepanel.sort:dialog"));
 	}
 
 	private static boolean cancelled(AtomicBoolean cancelled) {

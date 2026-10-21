@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.util.Locale;
 
 /** Converts Docker diagnostics into stable, user-facing error categories. */
@@ -58,7 +60,7 @@ final class DockerErrors {
 		String value = stderr == null ? "" : stderr.strip();
 		value = value.replaceFirst("(?i)^error response from daemon:\\s*", "");
 		if (value.isBlank()) {
-			return "docker exited with code " + exitCode + '.';
+			return tr("error.exit.code", String.valueOf(exitCode));
 		}
 		return value.length() > 2000 ? value.substring(0, 2000) + "…" : value;
 	}

@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.io.IOException;
 
 /** A user-meaningful failure reported by the local Docker transport. */
@@ -54,14 +56,14 @@ public final class DockerException extends IOException {
 	/** Text suitable for a normal Commander error dialog. */
 	public String userMessage() {
 		return switch (kind) {
-			case NOT_INSTALLED -> "Docker is not installed or the docker command is not on PATH.";
-			case DAEMON_UNAVAILABLE -> withDetail("Cannot connect to the Docker daemon.");
-			case ACCESS_DENIED -> withDetail("Docker denied access. Check your Docker permissions.");
-			case TIMEOUT -> withDetail("The Docker operation timed out.");
-			case NOT_FOUND -> withDetail("The Docker resource no longer exists. Refresh the panel.");
-			case IN_USE -> withDetail("Docker cannot remove this resource because it is currently in use.");
-			case CANCELLED -> "The Docker operation was cancelled.";
-			case COMMAND_FAILED -> withDetail("The Docker operation failed.");
+			case NOT_INSTALLED -> tr("error.not.installed");
+			case DAEMON_UNAVAILABLE -> withDetail(tr("error.daemon"));
+			case ACCESS_DENIED -> withDetail(tr("error.access"));
+			case TIMEOUT -> withDetail(tr("error.timeout"));
+			case NOT_FOUND -> withDetail(tr("error.not.found"));
+			case IN_USE -> withDetail(tr("error.in.use"));
+			case CANCELLED -> tr("error.cancelled");
+			case COMMAND_FAILED -> withDetail(tr("error.failed"));
 		};
 	}
 

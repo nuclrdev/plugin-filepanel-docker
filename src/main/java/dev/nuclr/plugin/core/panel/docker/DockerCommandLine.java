@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,7 +79,7 @@ final class DockerCommandLine {
 			}
 		}
 		if (quote != 0) {
-			throw new IllegalArgumentException("The command contains an unfinished quote or escape.");
+			throw new IllegalArgumentException(tr("error.command.unfinished"));
 		}
 		if (!token.isEmpty()) {
 			result.add(token.toString());

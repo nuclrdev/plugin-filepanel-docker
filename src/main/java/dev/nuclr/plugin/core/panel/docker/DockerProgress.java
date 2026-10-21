@@ -17,10 +17,13 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Window;
+import java.awt.event.KeyEvent;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
@@ -28,10 +31,12 @@ import java.util.function.Consumer;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 
 import dev.nuclr.platform.plugin.NuclrPluginCallback;
@@ -74,11 +79,11 @@ final class DockerProgress {
 
 		Window owner = DockerDialogs.activeWindow();
 
-		var itemLabel = new JLabel("Working…");
+		var itemLabel = new JLabel(tr("progress.working"));
 		var bar = new JProgressBar(0, 100);
 		bar.setIndeterminate(true);
 		bar.setStringPainted(false);
-		var cancelButton = new JButton("Cancel");
+		var cancelButton = new JButton(tr("dialog.cancel"));
 
 		var dialog = new JDialog(owner, title, JDialog.ModalityType.APPLICATION_MODAL);
 		dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
@@ -99,6 +104,9 @@ final class DockerProgress {
 		dialog.pack();
 		dialog.setMinimumSize(new Dimension(440, dialog.getHeight()));
 		dialog.setLocationRelativeTo(owner);
+		// ESC answers like Cancel, as in every other dialog; a disabled Cancel ignores it.
+		dialog.getRootPane().registerKeyboardAction(event -> cancelButton.doClick(),
+				KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
 
 		var cancelled = new AtomicBoolean(false);
 		var finished = new AtomicBoolean(false);
@@ -106,7 +114,7 @@ final class DockerProgress {
 		cancelButton.addActionListener(event -> {
 			cancelled.set(true);
 			cancelButton.setEnabled(false);
-			itemLabel.setText("Cancelling…");
+			itemLabel.setText(tr("progress.cancelling"));
 		});
 
 		var callback = new NuclrPluginCallback() {

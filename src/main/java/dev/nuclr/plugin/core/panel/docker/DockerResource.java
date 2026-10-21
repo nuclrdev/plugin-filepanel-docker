@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.OpenOption;
@@ -91,7 +93,7 @@ public final class DockerResource extends NuclrResource {
 
 	public static DockerResource root() {
 		DockerResource resource = base(null, KIND_ROOT, ROOT_UUID, "Docker", true);
-		resource.getMetadata().put("Description", "Local Docker Engine");
+		resource.getMetadata().put("Description", tr("engine.local"));
 		return resource;
 	}
 
@@ -103,17 +105,17 @@ public final class DockerResource extends NuclrResource {
 
 	public static DockerResource category(String category) {
 		String label = switch (category) {
-			case CATEGORY_CONTAINERS -> "Containers";
-			case CATEGORY_IMAGES -> "Images";
-			case CATEGORY_VOLUMES -> "Volumes";
+			case CATEGORY_CONTAINERS -> tr("category.containers");
+			case CATEGORY_IMAGES -> tr("category.images");
+			case CATEGORY_VOLUMES -> tr("category.volumes");
 			default -> category;
 		};
 		DockerResource resource = base(null, KIND_CATEGORY, ROOT_UUID + category, label, true);
 		resource.getMetadata().put(CATEGORY, category);
 		resource.getMetadata().put("Description", switch (category) {
-			case CATEGORY_CONTAINERS -> "Running and stopped containers";
-			case CATEGORY_IMAGES -> "Local images";
-			case CATEGORY_VOLUMES -> "Local volumes";
+			case CATEGORY_CONTAINERS -> tr("category.containers.description");
+			case CATEGORY_IMAGES -> tr("category.images.description");
+			case CATEGORY_VOLUMES -> tr("category.volumes.description");
 			default -> "";
 		});
 		return resource;
@@ -181,7 +183,7 @@ public final class DockerResource extends NuclrResource {
 
 	public static DockerResource usage(String usageType, String id, String label) {
 		DockerResource resource = base(null, KIND_USAGE,
-				ROOT_UUID + usageType + "/usage/" + id, label + " — Containers", true);
+				ROOT_UUID + usageType + "/usage/" + id, tr("usage.title", label), true);
 		resource.getMetadata().put(USAGE_TYPE, usageType);
 		resource.getMetadata().put(RESOURCE_ID, id);
 		resource.getMetadata().put(SOURCE_LABEL, label);
@@ -221,7 +223,7 @@ public final class DockerResource extends NuclrResource {
 			String parentPath, DockerFilesystemManager filesystems) {
 		DockerResource resource = filesystemDirectory(sourceType, sourceId, sourceLabel, parentPath, filesystems);
 		resource.rename("..");
-		resource.getMetadata().put("Size", "Up");
+		resource.getMetadata().put("Size", tr("size.up"));
 		return resource;
 	}
 
@@ -310,8 +312,8 @@ public final class DockerResource extends NuclrResource {
 	private static void fileColumns(DockerResource resource, DockerFileInfo info) {
 		resource.getMetadata().put("Extension", info.folder() ? "" : extension(info.name()));
 		resource.getMetadata().put("Size", info.folder() ? "" : formatSize(info.size()));
-		resource.getMetadata().put("Type", info.folder() ? (info.link() ? "Folder link" : "Folder")
-				: (info.link() ? "File link" : "File"));
+		resource.getMetadata().put("Type", info.folder() ? (info.link() ? tr("type.folder.link") : tr("type.folder"))
+				: (info.link() ? tr("type.file.link") : tr("type.file")));
 		resource.getMetadata().put("Modified", info.modified() == null ? "-"
 				: DISPLAY_STAMP.format(LocalDateTime.ofInstant(info.modified(), ZoneId.systemDefault())));
 		resource.getMetadata().put("Permissions", permissions(info.mode()));

@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
@@ -128,10 +130,10 @@ final class TarDockerFilesystem implements AutoCloseable {
 		String resolved = resolve(requested);
 		Indexed directory = entries.get(resolved);
 		if (directory == null) {
-			throw new IOException("Path no longer exists in the Docker filesystem snapshot: " + requested);
+			throw new IOException(tr("error.path.gone", requested));
 		}
 		if (!directory.folder()) {
-			throw new IOException("Not a directory in the Docker filesystem: " + requested);
+			throw new IOException(tr("error.not.directory", requested));
 		}
 
 		var result = new ArrayList<DockerFileInfo>();
@@ -151,7 +153,7 @@ final class TarDockerFilesystem implements AutoCloseable {
 		String resolved = resolve(DockerPaths.normalize(requestedPath));
 		Indexed indexed = entries.get(resolved);
 		if (indexed == null || indexed.folder()) {
-			throw new IOException("Not a readable Docker file: " + requestedPath);
+			throw new IOException(tr("error.not.readable", requestedPath));
 		}
 		if (indexed.dataOffset() >= 0) {
 			return openAt(indexed);
@@ -193,7 +195,7 @@ final class TarDockerFilesystem implements AutoCloseable {
 			}
 			current = next;
 		}
-		throw new IOException("Too many symbolic links while resolving " + path);
+		throw new IOException(tr("error.link.loop", path));
 	}
 
 	private InputStream openAt(Indexed indexed) throws IOException {
@@ -221,7 +223,7 @@ final class TarDockerFilesystem implements AutoCloseable {
 			throw e;
 		}
 		tar.close();
-		throw new IOException("Docker file was not found in its snapshot: " + requestedPath);
+		throw new IOException(tr("error.file.not.in.snapshot", requestedPath));
 	}
 
 	private Indexed effective(Indexed indexed) throws IOException {

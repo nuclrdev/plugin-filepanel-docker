@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.KeyboardFocusManager;
@@ -59,7 +61,7 @@ final class DockerDialogs {
 	}
 
 	static boolean confirmDestructive(String title, String message) {
-		Object[] options = { "Delete", "Cancel" };
+		Object[] options = { tr("dialog.delete"), tr("dialog.cancel") };
 		var result = new boolean[1];
 		onEdtAndWait(() -> {
 			var pane = new JOptionPane(message, JOptionPane.WARNING_MESSAGE,
@@ -96,29 +98,29 @@ final class DockerDialogs {
 			JTextArea volumes = area();
 
 			JPanel fields = new JPanel(new GridLayout(0, 1, 0, 4));
-			fields.add(new JLabel("Container name (optional)"));
+			fields.add(new JLabel(tr("run.name")));
 			fields.add(name);
-			fields.add(new JLabel("Command override (optional)"));
+			fields.add(new JLabel(tr("run.command")));
 			fields.add(command);
-			fields.add(new JLabel("Environment variables — one NAME=value per line (optional)"));
+			fields.add(new JLabel(tr("run.environment")));
 			fields.add(new JScrollPane(environment));
-			fields.add(new JLabel("Port mappings — one host:container per line (optional)"));
+			fields.add(new JLabel(tr("run.ports")));
 			fields.add(new JScrollPane(ports));
-			fields.add(new JLabel("Volume mappings — one source:destination per line (optional)"));
+			fields.add(new JLabel(tr("run.volumes")));
 			fields.add(new JScrollPane(volumes));
 
 			JPanel panel = new JPanel(new BorderLayout(0, 8));
 			panel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-			panel.add(new JLabel("Create and start a container from " + imageLabel), BorderLayout.NORTH);
+			panel.add(new JLabel(tr("run.heading", imageLabel)), BorderLayout.NORTH);
 			panel.add(fields, BorderLayout.CENTER);
 
-			if (JOptionPane.showConfirmDialog(activeWindow(), panel, "Run Image",
+			if (JOptionPane.showConfirmDialog(activeWindow(), panel, tr("run.title"),
 					JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
 				try {
 					result[0] = new RunContainerRequest(imageId, name.getText().strip(),
 							DockerCommandLine.parse(command.getText()), lines(environment), lines(ports), lines(volumes));
 				} catch (IllegalArgumentException e) {
-					error("Run Image", e.getMessage());
+					error(tr("run.title"), e.getMessage());
 				}
 			}
 		});

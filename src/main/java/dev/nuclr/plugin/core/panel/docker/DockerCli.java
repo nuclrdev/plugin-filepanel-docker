@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,7 +58,7 @@ final class DockerCli implements AutoCloseable {
 		execute(args, timeout, cancelled, stdout, stderr);
 		if (stdout.truncated()) {
 			throw new DockerException(DockerException.Kind.COMMAND_FAILED,
-					"Docker returned more than " + MAX_TEXT_BYTES / (1024 * 1024) + " MB of text output.");
+					tr("error.output.too.large", String.valueOf(MAX_TEXT_BYTES / (1024 * 1024))));
 		}
 		return new Result(stdout.text(), stderr.text());
 	}
@@ -71,7 +73,7 @@ final class DockerCli implements AutoCloseable {
 			throw e;
 		} catch (IOException e) {
 			throw new DockerException(DockerException.Kind.COMMAND_FAILED,
-					"Could not write the Docker filesystem snapshot: " + e.getMessage(), e);
+					tr("error.snapshot.write", e.getMessage()), e);
 		}
 	}
 
@@ -79,7 +81,7 @@ final class DockerCli implements AutoCloseable {
 			OutputStream stdout, CappedOutputStream stderr) throws DockerException {
 
 		if (closed || isCancelled(cancelled)) {
-			throw new DockerException(DockerException.Kind.CANCELLED, "Docker operation cancelled.");
+			throw new DockerException(DockerException.Kind.CANCELLED, tr("error.operation.cancelled"));
 		}
 
 		List<String> command = new ArrayList<>(args.size() + 1);
@@ -105,17 +107,17 @@ final class DockerCli implements AutoCloseable {
 		try {
 			while (!process.waitFor(POLL_MILLIS, TimeUnit.MILLISECONDS)) {
 				if (closed || isCancelled(cancelled)) {
-					throw new DockerException(DockerException.Kind.CANCELLED, "Docker operation cancelled.");
+					throw new DockerException(DockerException.Kind.CANCELLED, tr("error.operation.cancelled"));
 				}
 				if (System.nanoTime() >= deadline) {
 					throw new DockerException(DockerException.Kind.TIMEOUT,
-							"Command timed out after " + timeout.toSeconds() + " seconds.");
+							tr("error.command.timeout", String.valueOf(timeout.toSeconds())));
 				}
 			}
 			complete = true;
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw new DockerException(DockerException.Kind.CANCELLED, "Docker operation interrupted.", e);
+			throw new DockerException(DockerException.Kind.CANCELLED, tr("error.operation.interrupted"), e);
 		} finally {
 			if (!complete) {
 				terminate(process);
@@ -127,11 +129,11 @@ final class DockerCli implements AutoCloseable {
 
 		if (stdoutFailure.get() != null) {
 			throw new DockerException(DockerException.Kind.COMMAND_FAILED,
-					"Could not read Docker output: " + stdoutFailure.get().getMessage(), stdoutFailure.get());
+					tr("error.read.output", stdoutFailure.get().getMessage()), stdoutFailure.get());
 		}
 		if (stderrFailure.get() != null) {
 			throw new DockerException(DockerException.Kind.COMMAND_FAILED,
-					"Could not read Docker diagnostics: " + stderrFailure.get().getMessage(), stderrFailure.get());
+					tr("error.read.diagnostics", stderrFailure.get().getMessage()), stderrFailure.get());
 		}
 		if (process.exitValue() != 0) {
 			throw DockerErrors.classify(stderr.text(), process.exitValue());
@@ -195,7 +197,7 @@ final class DockerCli implements AutoCloseable {
 	private static String startFailureMessage(IOException failure) {
 		String detail = failure.getMessage() == null || failure.getMessage().isBlank()
 				? "" : System.lineSeparator() + failure.getMessage();
-		return "Could not start '" + executable() + "'." + detail;
+		return tr("error.start", executable(), detail);
 	}
 
 	private static void terminate(Process process) {

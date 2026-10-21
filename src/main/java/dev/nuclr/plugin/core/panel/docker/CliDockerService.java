@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -171,7 +173,7 @@ public final class CliDockerService implements DockerService {
 		String id = cli.run(DockerCommands.createContainer(request), ACTION_TIMEOUT, cancelled).stdout().strip();
 		if (id.isBlank()) {
 			throw new DockerException(DockerException.Kind.COMMAND_FAILED,
-					"Docker created no container identifier.");
+					tr("error.no.container.id"));
 		}
 		startContainer(id, cancelled);
 		return id;
@@ -224,7 +226,7 @@ public final class CliDockerService implements DockerService {
 					ACTION_TIMEOUT, cancelled).stdout().strip();
 			if (helperId.isBlank()) {
 				throw new DockerException(DockerException.Kind.COMMAND_FAILED,
-						"Docker created no temporary container identifier.");
+						tr("error.no.helper.id"));
 			}
 			activeHelpers.add(helperId);
 			exportContainer(helperId, destination, cancelled);
@@ -300,14 +302,14 @@ public final class CliDockerService implements DockerService {
 			return "";
 		} catch (Exception e) {
 			throw new DockerException(DockerException.Kind.COMMAND_FAILED,
-					"Docker returned invalid context information.", e);
+					tr("error.invalid.context"), e);
 		}
 	}
 
 	private static DockerException remoteEndpointError(String endpoint) {
 		return new DockerException(DockerException.Kind.COMMAND_FAILED,
-				"Remote Docker endpoints are not supported by this local Docker plugin."
-						+ System.lineSeparator() + "Active endpoint: " + DockerEndpoints.display(endpoint));
+				tr("error.remote.endpoint")
+						+ System.lineSeparator() + tr("error.active.endpoint", DockerEndpoints.display(endpoint)));
 	}
 
 	private List<JsonNode> jsonLines(String output) throws DockerException {
@@ -324,7 +326,7 @@ public final class CliDockerService implements DockerService {
 			return nodes;
 		} catch (Exception e) {
 			throw new DockerException(DockerException.Kind.COMMAND_FAILED,
-					"Docker returned invalid JSON output.", e);
+					tr("error.invalid.json"), e);
 		}
 	}
 

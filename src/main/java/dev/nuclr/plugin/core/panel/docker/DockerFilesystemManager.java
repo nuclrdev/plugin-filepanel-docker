@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -130,7 +132,7 @@ public final class DockerFilesystemManager implements AutoCloseable {
 			return existing;
 		}
 		if (!SOURCE_CONTAINER.equals(type) && !SOURCE_IMAGE.equals(type)) {
-			throw new IOException("Unsupported Docker filesystem source: " + type);
+			throw new IOException(tr("error.unsupported.source", type));
 		}
 
 		// One export at a time per source, so two panels opening the same container share the work
@@ -146,7 +148,7 @@ public final class DockerFilesystemManager implements AutoCloseable {
 
 	private synchronized TarDockerFilesystem cached(Source source) throws IOException {
 		if (closed) {
-			throw new IOException("The Docker filesystem browser has been closed.");
+			throw new IOException(tr("error.browser.closed"));
 		}
 		return filesystems.get(source);
 	}
@@ -167,7 +169,7 @@ public final class DockerFilesystemManager implements AutoCloseable {
 			TarDockerFilesystem created = new TarDockerFilesystem(archive);
 			retained = publish(source, created);
 			if (!retained) {
-				throw new IOException("The Docker filesystem browser has been closed.");
+				throw new IOException(tr("error.browser.closed"));
 			}
 			return created;
 		} finally {

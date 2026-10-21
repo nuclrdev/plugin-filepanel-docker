@@ -17,6 +17,8 @@
 */
 package dev.nuclr.plugin.core.panel.docker;
 
+import static dev.nuclr.plugin.core.panel.docker.Messages.tr;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -67,23 +69,21 @@ final class DockerCopyService {
 
 		List<NuclrResource> sources = selected(selectedResources, focusedResource);
 		if (sources.isEmpty()) {
-			DockerDialogs.error("Copy", "Select a file or directory inside a Docker filesystem.");
+			DockerDialogs.error(tr("copy.title"), tr("copy.select.source"));
 			return null;
 		}
 		if (other == null || other.getCurrentResource() == null) {
-			DockerDialogs.error("Copy", "Open a local destination folder in the other panel.");
+			DockerDialogs.error(tr("copy.title"), tr("copy.open.destination"));
 			return null;
 		}
 		Path destination = other.getCurrentResource().getPath();
 		if (destination == null || !Files.isDirectory(destination)) {
-			DockerDialogs.error("Copy",
-					"Docker files can currently be copied only to a local filesystem folder.");
+			DockerDialogs.error(tr("copy.title"), tr("copy.local.only"));
 			return null;
 		}
 
-		String label = sources.size() == 1 ? sources.get(0).getName() : sources.size() + " items";
-		if (!DockerDialogs.confirm("Copy", "Copy " + label + " to" + System.lineSeparator()
-				+ destination + '?')) {
+		String label = sources.size() == 1 ? sources.get(0).getName() : tr("copy.items", String.valueOf(sources.size()));
+		if (!DockerDialogs.confirm(tr("copy.title"), tr("copy.confirm", label, System.lineSeparator(), destination))) {
 			return null;
 		}
 
@@ -94,7 +94,7 @@ final class DockerCopyService {
 				.filter(Files::exists)
 				.map(path -> path.getFileName().toString())
 				.toList();
-		if (!existing.isEmpty() && !DockerDialogs.confirmDestructive("Copy",
+		if (!existing.isEmpty() && !DockerDialogs.confirmDestructive(tr("copy.title"),
 				overwriteMessage(existing, destination))) {
 			return null;
 		}
@@ -105,14 +105,14 @@ final class DockerCopyService {
 	private static String overwriteMessage(List<String> existing, Path destination) {
 		var message = new StringBuilder();
 		message.append(existing.size() == 1
-				? "This item already exists in " + destination + ':'
-				: existing.size() + " items already exist in " + destination + ':');
+				? tr("copy.exists.one", destination)
+				: tr("copy.exists.many", String.valueOf(existing.size()), destination));
 		existing.stream().limit(10).forEach(name -> message.append(System.lineSeparator()).append(name));
 		if (existing.size() > 10) {
-			message.append(System.lineSeparator()).append("… and ").append(existing.size() - 10).append(" more");
+			message.append(System.lineSeparator()).append(tr("copy.exists.more", String.valueOf(existing.size() - 10)));
 		}
 		message.append(System.lineSeparator()).append(System.lineSeparator())
-				.append("Existing files will be replaced.");
+				.append(tr("copy.replace.note"));
 		return message.toString();
 	}
 
@@ -125,7 +125,7 @@ final class DockerCopyService {
 	 */
 	String transfer(Plan plan, NuclrPluginCallback callback) {
 		if (callback != null) {
-			callback.onStart("Extracting " + plan.label());
+			callback.onStart(tr("copy.progress", plan.label()));
 		}
 		long[] completed = { 0 };
 		try {
@@ -145,7 +145,7 @@ final class DockerCopyService {
 				callback.onError(plan.label(), e);
 			}
 			log.warn("Could not extract {}: {}", plan.label(), e.getMessage(), e);
-			return "Could not extract " + plan.label() + ':' + System.lineSeparator() + e.getMessage();
+			return tr("copy.failed", plan.label(), System.lineSeparator(), e.getMessage());
 		}
 	}
 
@@ -158,7 +158,7 @@ final class DockerCopyService {
 			int depth, Set<String> visited) throws Exception {
 
 		if (depth > MAX_DEPTH) {
-			throw new IOException("Too many linked directory levels below " + source.getFullPath());
+			throw new IOException(tr("error.link.depth", source.getFullPath()));
 		}
 		if (cancelled(callback)) {
 			return;
